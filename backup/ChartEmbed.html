@@ -1,0 +1,49 @@
+<div>
+  <select id="chartTypeSwitcher">
+    <option value="ColumnChart">Column Chart</option>
+    <option value="BarChart">Bar Chart</option>
+    <option value="PieChart">Pie Chart</option>
+  </select>
+</div>
+
+<div id="chart_div" style="width: 100%; height: 400px;"></div>
+
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script>
+  google.charts.load('current', { packages: ['corechart'] });
+  google.charts.setOnLoadCallback(init);
+
+  let currentChartType = "ColumnChart"; // default
+  let lastData = null;
+
+  function init() {
+    // listen for data from parent
+    window.onmessage = (event) => {
+      lastData = google.visualization.arrayToDataTable(event.data);
+      drawChart();
+    };
+
+    // listen for chart type changes
+    document.getElementById("chartTypeSwitcher").addEventListener("change", (e) => {
+      currentChartType = e.target.value;
+      if (lastData) drawChart();
+    });
+  }
+
+  function drawChart() {
+    let chart;
+    if (currentChartType === "ColumnChart") {
+      chart = new google.visualization.ColumnChart(document.getElementById("chart_div"));
+    } else if (currentChartType === "BarChart") {
+      chart = new google.visualization.BarChart(document.getElementById("chart_div"));
+    } else if (currentChartType === "PieChart") {
+      chart = new google.visualization.PieChart(document.getElementById("chart_div"));
+    }
+
+    chart.draw(lastData, {
+      title: "Favorite Park Feature",
+      legend: { position: "bottom" },
+      pieHole: (currentChartType === "PieChart" ? 0.3 : 0), // donut-style for fun
+    });
+  }
+</script>
