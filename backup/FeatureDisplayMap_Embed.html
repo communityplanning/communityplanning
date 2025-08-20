@@ -27,39 +27,36 @@
       ////////////
       //SeT Map//
       ///////////
-      const map = L.map("map").setView([39.629152, -79.957313], 14);
+      const map = L.map("map").setView([39.629152, -79.957313], 14); // map is set 
 
-      //SET Bounds
+      ///////////////////////
+      //////SET Bounds//////
+      
       // Define map bounds (roughly around Monongalia County)
       const bounds = L.latLngBounds(
         [39.431109, -80.405442], // Southwest corner
         [39.735397, -79.731156] // Northeast corner
       );
-
-      map.setMaxBounds(bounds);
+      map.setMaxBounds(bounds); // Set the bounds 
 
       // Optionally prevent users from zooming out too far
       map.setMinZoom(10);
-
       // Optional: snap back inside bounds if dragged out too fast
       map.on("drag", function () {
         map.panInsideBounds(bounds, { animate: false });
       });
 
-      // Base map layers
+      ///////////////////////////
+      //////Base map layers//////
+      
       const openStreetMap = L.tileLayer(
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         { attribution: "© OpenStreetMap contributors" }
       );
 
-      const ustopo = L.tileLayer(
-        "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}",
-        {
-          maxZoom: 20,
-          attribution:
-            'Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>',
-        }
-      );
+      var esriTopo = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	      attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
+      });
 
       const esri = L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -72,14 +69,22 @@
       // Add default layer
       openStreetMap.addTo(map);
 
-      // Add layer control
+      // Add base map layer control
       const baseMaps = {
         "OpenStreet Map": openStreetMap,
-        "USGS Topo": ustopo,
+        "Esri Topo": esriTopo,
         "Esri Imagery": esri,
       };
 
-      L.control.layers(baseMaps).addTo(map);
+      L.control.layers(baseMaps).addTo(map); // add baseMap layer control to the map
+
+      //////////////////
+      //END OF Set Map//
+      //////////////////
+
+      //////////////////////
+      //Listen to the page//
+      /////////////////////
 
       window.addEventListener("message", (event) => {
     if (!event.data) return;
