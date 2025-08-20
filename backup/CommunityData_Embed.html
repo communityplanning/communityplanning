@@ -17,70 +17,75 @@
   <h1>Hello from GitHub</h1>
   <div id="map"></div>
   <script>
-    // Initialize the map centered on Monongalia County, WV
-    const map = L.map("map").setView([39.63, -79.95], 13);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors"
-    }).addTo(map);
+  // Initialize the map
+  const map = L.map("map").setView([39.63, -79.95], 13);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap contributors"
+  }).addTo(map);
 
-    // Fetch ACS data for Monongalia County (Median Household Income)
-    async function fetchACSData() {
-      const url = "https://api.census.gov/data/2021/acs/acs5?get=B19013_001E,NAME&for=block%20group:*&in=state:54&in=county:061";
-      const res = await fetch(url);
-      const json = await res.json();
+  // Fetch ACS data
+  async function fetchACSData() {
+    const url = "https://api.census.gov/data/2021/acs/acs5?get=B19013_001E,NAME&for=block%20group:*&in=state:54&in=county:061";
+    const res = await fetch(url);
+    const json = await res.json();
 
-      const [headers, ...rows] = json;
-      const lookup = {};
-      rows.forEach(row => {
-        const rec = Object.fromEntries(headers.map((h, i) => [h, row[i]]));
-        const geoid = rec.state + rec.county + rec.tract + rec["block group"];
-        lookup[geoid] = {
-          name: rec.NAME,
-          income: rec.B19013_001E
-        };
-      });
+    const [headers, ...rows] = json;
+    const lookup = {};
+    rows.forEach(row => {
+      const rec = Object.fromEntries(headers.map((h, i) => [h, row[i]]));
+      const geoid = rec.state + rec.county + rec.tract + rec["block group"];
+      lookup[geoid] = {
+        name: rec.NAME,
+        income: rec.B19013_001E
+      };
+    });
+    return lookup;
+  }
 
-      return lookup;
-    }
+  // Load GeoJSON and render map layer
+  async function renderMap() {
+    const acsData = await fetchACSData();
+    const geoRes = await fetch("https://communityplanning.github.io/censusGeoJson/MonCountyBG.geojson");
+    const geojson = await geoRes.json();
 
-    // Load GeoJSON and render the map
-    async function renderMap() {
-      const acsData = await fetchACSData();
-      const geoRes = await fetch("https://communityplanning.github.io/censusGeoJson/MonCountyBG.geojson");
-      const geojson = await geoRes.json();
-
-      L.geoJSON(geojson, {
-        style: feature => {
-          const geoid = feature.properties.GEOID;
-          const value = acsData[geoid]?.income;
-          let fillColor = "gray";
-          if (value !== undefined && value !== null && !isNaN(+value)) {
-            // Adjust color scale as needed
-            const income = +value;
-            fillColor = income > 60000 ? "green" :
-                        income > 40000 ? "orange" : "red";
-          }
-          return {
-            color: "#333",
-            weight: 1,
-            fillColor,
-            fillOpacity: 0.5
-          };
-        },
-        onEachFeature: (feature, layer) => {
-          const geoid = feature.properties.GEOID;
-          const acs = acsData[geoid];
-
-          const popupContent = acs
-            ? `<strong>${acs.name}</strong><br>Median Income: $${acs.income}`
-            : "No ACS data available";
-
-          layer.bindPopup(popupContent);
+    // Create the income layer (not auto-added yet)
+    const incomeLayer = L.geoJSON(geojson, {
+      style: feature => {
+        const geoid = feature.properties.GEOID;
+        const value = acsData[geoid]?.income;
+        let fillColor = "gray";
+        if (value !== undefined && !isNaN(+value)) {
+          const income = +value;
+          fillColor = income > 60000 ? "green" :
+                      income > 40000 ? "orange" : "red";
         }
-      }).addTo(map);
-    }
+        return {
+          color: "#333",
+          weight: 1,
+          fillColor,
+          fillOpacity: 0.5
+        };
+      },
+      onEachFeature: (feature, layer) => {
+        const geoid = feature.properties.GEOID;
+        const acs = acsData[geoid];
+        const popupContent = acs
+          ? `<strong>${acs.name}</strong><br>Median Income: $${acs.income}`
+          : "No ACS data available";
+        layer.bindPopup(popupContent);
+      }
+    });
 
-    renderMap().catch(err => console.error("Map loading error:", err));
-  </script>
+    // Add layer control (base maps vs overlays)
+    const baseMaps = {}; // (only OSM now, already added)
+    const overlayMaps = {
+      "Median Income": incomeLayer
+    };
+    L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+  }
+
+  renderMap().catch(err => console.error("Map loading error:", err));
+</script>
+
 </body>
 </html>
