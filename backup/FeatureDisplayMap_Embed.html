@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>FeatureDisplayMap</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <style>
+      html,
+      body,
+      #map {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      ////////////
+      //SeT Map//
+      ///////////
+      const map = L.map("map").setView([39.629152, -79.957313], 14);
+
+      //SET Bounds
+      // Define map bounds (roughly around Monongalia County)
+      const bounds = L.latLngBounds(
+        [39.431109, -80.405442], // Southwest corner
+        [39.735397, -79.731156] // Northeast corner
+      );
+
+      map.setMaxBounds(bounds);
+
+      // Optionally prevent users from zooming out too far
+      map.setMinZoom(10);
+
+      // Optional: snap back inside bounds if dragged out too fast
+      map.on("drag", function () {
+        map.panInsideBounds(bounds, { animate: false });
+      });
+
+      // Base map layers
+      const openStreetMap = L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        { attribution: "© OpenStreetMap contributors" }
+      );
+
+      const ustopo = L.tileLayer(
+        "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}",
+        {
+          maxZoom: 20,
+          attribution:
+            'Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>',
+        }
+      );
+
+      const esri = L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        {
+          attribution:
+            "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+        }
+      );
+
+      // Add default layer
+      openStreetMap.addTo(map);
+
+      // Add layer control
+      const baseMaps = {
+        "OpenStreet Map": openStreetMap,
+        "USGS Topo": ustopo,
+        "Esri Imagery": esri,
+      };
+
+      L.control.layers(baseMaps).addTo(map);
+
+      window.addEventListener("message", (event) => {
+    if (!event.data) return;
+
+    const { type, data } = event.data;
+
+    if (type === "loadMapData") {
+        const { markers, lines } = data;
+
+        // === Create layer groups ===
+        const markerLayer = L.layerGroup();
+        const lineLayer = L.layerGroup();
+
+        // === Add markers to markerLayer ===
+        markers.forEach(marker => {
+            if (marker.lat && marker.lng) {
+                const m = L.marker([marker.lat, marker.lng])
+                    .bindPopup(`<b>${marker.title}</b><br>${marker.description}`);
+                markerLayer.addLayer(m);
+            }
+        });
+
+        // === Add lines to lineLayer ===
+        lines.forEach(line => {
+            if (line.geojson) {
+                const geoJsonLayer = L.geoJSON(line.geojson, {
+                    onEachFeature: function (feature, layer) {
+                        const name = feature.properties?.name || line.title;
+                        const description = line.description || feature.properties?.type || "";
+                        layer.bindPopup(`<b>${name}</b><br>${description}`);
+                    },
+                    style: {
+                        color: 'blue',
+                        weight: 4
+                    }
+                });
+                lineLayer.addLayer(geoJsonLayer);
+            }
+        });
+
+        // === Add layers to map ===
+        markerLayer.addTo(map);
+        lineLayer.addTo(map);
+
+        // === Create layer control ===
+        const overlayMaps = {
+            "Markers": markerLayer,
+            "Lines": lineLayer
+        };
+
+        L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
+    }
+});
+    </script>
+  </body>
+</html>
