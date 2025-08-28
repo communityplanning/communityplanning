@@ -1,9 +1,10 @@
-import { getMarkers, addMarker, deleteMarker } from 'backend/community-map.web';
+import { getMarkers, addMarker, deleteMarker, voteMarker } from 'backend/markers.web';
 import wixUsers from 'wix-users';
 import wixData from 'wix-data';
 import wixLocation from 'wix-location';
 
 $w.onReady(async function () {
+
   const iframe = $w("#mapMain");
   const user = wixUsers.currentUser;
 
@@ -55,6 +56,17 @@ $w.onReady(async function () {
           console.log("Login cancelled or failed", err);
         });
     }
+
+    if (type === "voteMarker") {
+      try {
+        const res = await voteMarker(data);
+        iframe.postMessage({ type: "voteUpdated", data: res });
+      } catch (err) {
+        console.error("Vote failed:", err.message);
+      }
+    }
+
+
   });
 
   // ✅ NEW: Listen for postMessage from iframe to add marker with category
@@ -77,4 +89,5 @@ $w.onReady(async function () {
       iframe.postMessage({ type: "reloadMarkers" });
     }
   });
+
 });
